@@ -40,16 +40,12 @@
   setInterval(updateOnline, 7000);
 
   /* ---------- Playlist load ---------- */
-  // Playlist comes from playlist.js as window.BC_PLAYLIST.
-  // If user has not added any real songs, we fall back to a visual/dummy set.
   const USER_TRACKS = Array.isArray(window.BC_PLAYLIST)
     ? window.BC_PLAYLIST.filter(t => t && t.title)
     : [];
 
   const HAS_REAL_TRACKS = USER_TRACKS.some(t => t.file);
 
-  // Fallback visual-only "tracks" (when no user songs are present yet).
-  // Title/artist show karte hain par actual audio nahi chalta.
   const VISUAL_TRACKS = [
     { title: "Apna pehla gaana daalo — (placeholder)", artist: "Berojgar Club Radio", file: null, cover: null, mood: "#c97b3c" },
     { title: "Dum Maro Dum (yaad aa rahi)",            artist: "R. D. Burman (placeholder)",     file: null, mood: "#c97b3c" },
@@ -61,14 +57,12 @@
 
   const TRACKS = HAS_REAL_TRACKS ? USER_TRACKS : VISUAL_TRACKS;
 
-  // Default mood palette for tracks without cover.
   const MOODS = ["#c97b3c","#e8b66a","#4a6b8a","#7a5a8a","#2f4a3a","#d96b4a","#e8a86a","#5a3a24"];
 
   /* ---------- DOM refs ---------- */
   const npTitle   = $("#np-title");
   const npArtist  = $("#np-artist");
   const npArt     = $(".np-art");
-  const npArtInner = $(".np-art-inner");
   const btnPlay   = $("#btn-play");
   const btnPrev   = $("#btn-prev");
   const btnNext   = $("#btn-next");
@@ -81,8 +75,8 @@
   /* ---------- Player state ---------- */
   let tIdx = 0;
   let playing = false;
-  let visualProgress = 0;            // for fallback mode (0..1)
-  let visualDuration = 240;          // seconds for fake track
+  let visualProgress = 0;
+  let visualDuration = 240;
   let lastTick = performance.now();
 
   const fmt = (s) => {
@@ -92,14 +86,13 @@
     return `${m}:${sec}`;
   };
 
-  const spinEl = () => npArt;          // spin album art when playing
-
   const setArt = (track) => {
-    // If real cover image exists, use an <img>; else use the colored lantern background.
     npArt.innerHTML = "";
-    if (track && track.cover) {
+    const cover = track && track.cover;
+    if (cover) {
+      const isExternal = /^https?:\/\//i.test(cover);
       const img = document.createElement("img");
-      img.src = `covers/${track.cover}`;
+      img.src = isExternal ? cover : `covers/${cover}`;
       img.alt = track.title || "album art";
       img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
       img.onerror = () => setFallbackArt(track);
@@ -134,15 +127,15 @@
     setArt(t);
     fill.style.width = "0%";
 
-    // Real audio track
-    if (t.file) {
-      radio.src = `songs/${t.file}`;
-      radio.load();
-      // Duration is set once metadata is available.
+    const src = t.file || null;
+    const isExternal = typeof src === "string" && /^https?:\/\//i.test(src);
+
+    if (src) {
+      radio.src = isExternal ? src : `songs/${src}`;
+      try { radio.load(); } catch(e) { console.warn(e); }
       radio.onloadedmetadata = () => {
         tDur.textContent = fmt(radio.duration);
       };
-      // When track ends, auto-advance.
       radio.onended = () => { next(true); };
       radio.ontimeupdate = () => {
         if (!radio.duration) return;
@@ -152,15 +145,14 @@
         tDur.textContent = fmt(radio.duration);
       };
       radio.onerror = () => {
-        // If audio fails to load (e.g. file missing), fall back to visual mode for this track.
-        console.warn("[Berojgar Club] Could not load:", `songs/${t.file} — check filename in playlist.js`);
-        tDur.textContent = fmt(visualDuration);
+        console.warn("[Berojgar Club] Could not load:", radio.src);
+        tCur.textContent = "0:00";
+        tDur.textContent = "—:--";
       };
-      tDur.textContent = "…";  // while loading
+      tDur.textContent = "…";
     } else {
-      // Visual-only track: no audio, simulated duration.
       radio.removeAttribute("src");
-      radio.load();
+      try { radio.load(); } catch(e) {}
       visualDuration = 220 + Math.floor(Math.random() * 120);
       visualProgress = 0;
       tDur.textContent = fmt(visualDuration);
@@ -176,7 +168,6 @@
       const p = radio.play();
       if (p && p.catch) {
         p.catch(err => {
-          // Autoplay blocked or some error — stay paused, user must click.
           console.warn("[Berojgar Club] Autoplay blocked:", err && err.message);
           playing = false;
           btnPlay.textContent = "▶";
@@ -203,7 +194,6 @@
     loadTrack(tIdx + 1, autoplay);
   };
   const prev = () => {
-    // If >3s into the song, restart; else go to previous.
     if (TRACKS[tIdx].file && radio.currentTime > 3) {
       radio.currentTime = 0;
       fill.style.width = "0%";
@@ -232,7 +222,6 @@
     }
   });
 
-  // Keyboard shortcuts: space = play/pause, arrow prev/next
   document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT") return;
     if (e.code === "Space") { e.preventDefault(); toggle(); }
@@ -240,7 +229,7 @@
     else if (e.code === "ArrowLeft") prev();
   });
 
-  /* ---------- Animation loop (drives visual mode + spin sync) ---------- */
+  /* ---------- Animation loop ---------- */
   const tick = (now) => {
     if (playing) {
       const dt = (now - lastTick) / 1000;
@@ -248,7 +237,6 @@
 
       const t = TRACKS[tIdx];
       if (!t.file) {
-        // Visual-only progress
         visualProgress += dt / visualDuration;
         if (visualProgress >= 1) {
           visualProgress = 0;
@@ -264,7 +252,6 @@
     requestAnimationFrame(tick);
   };
 
-  // If there are NO real tracks, show a small hint in the UI.
   if (!HAS_REAL_TRACKS) {
     const hint = document.createElement("p");
     hint.className = "np-hint";
@@ -314,7 +301,6 @@
     const rect = carrom.getBoundingClientRect();
     strikerX = Math.max(8, Math.min(92, ((e.clientX - rect.left) / rect.width) * 100));
     striker.style.left = strikerX + "%";
-    $$(".piece.p", border).forEach(() => {}); // placeholder to keep shape consistent
     const pieces = $$(".piece.p", border);
     pieces.forEach((p) => {
       const dx = (Math.random() - 0.5) * 60;
