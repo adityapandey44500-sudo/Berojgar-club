@@ -1,16 +1,5 @@
 /* =========================================================
    Berojgar Club — अपनी playlist (YouTube links)
-   =========================================================
-   Koi MP3 download/upload nahi karna!
-   Bas YouTube ke gaane ka link leke neeche add karo:
-
-   1. YouTube video pe jao → Share → Copy link
-   2. Neeche array mein ek naya object add karo:
-        {
-          title: "Gaane ka naam",
-          artist: "Singer / Movie",
-          yt: "https://youtu.be/XXXXXXXX"
-        }
    ========================================================= */
 
 window.BC_PLAYLIST = [
@@ -21,39 +10,64 @@ window.BC_PLAYLIST = [
     yt: "https://www.youtube.com/watch?v=2nfvIqqw0CI"
   },
   {
-    title: "Ye Shaam Mastani",
-    artist: "Kishore Kumar • Kati Patang (1971)",
-    yt: "https://www.youtube.com/watch?v=OeygiC-mZNk"
+    title: "Tere Dar Par Sanam",
+    artist: "Kumar Sanu • Phir Teri Kahani Yaad Aayi (1993)",
+    yt: "https://youtu.be/05o4kCUY2Ys"
   },
   {
-    title: "Pyar Deewana Hota Hai",
-    artist: "Kishore Kumar • Kati Patang (1971)",
-    yt: "https://www.youtube.com/watch?v=U8C5vF9nZgk"
+    title: "Dil Kehta Hai",
+    artist: "Kumar Sanu & Alka Yagnik • Akele Hum Akele Tum (1995)",
+    yt: "https://youtu.be/PqiddY3o3aY"
   },
   {
-    title: "Dum Maro Dum",
-    artist: "Asha Bhosle & R. D. Burman • Hare Rama Hare Krishna (1971)",
-    yt: "https://www.youtube.com/watch?v=6F7hS2wY_wo"
+    title: "Tumsa Koi Pyaara",
+    artist: "Kumar Sanu & Alka Yagnik • Khuddar",
+    yt: "https://youtu.be/fXzm9F4S3d0"
   },
   {
-    title: "Phir Se Ud Chala",
-    artist: "Mohit Chauhan • Rockstar (2011)",
-    yt: "https://www.youtube.com/watch?v=R7E61jQr_wo"
+    title: "Saaton Janam Main Tere",
+    artist: "Kumar Sanu • Dilwale",
+    yt: "https://youtu.be/DvJFq1FUb4Q"
   },
   {
-    title: "Tum Hi Ho Bandhu",
-    artist: "Neeraj Shridhar & Kavita Seth • Cocktail (2012)",
-    yt: "https://www.youtube.com/watch?v=VwIxRr2sZvI"
+    title: "Tumhein Dekhen Meri Aankhen",
+    artist: "Alka Yagnik & Kumar Sanu • Rang",
+    yt: "https://youtu.be/q6ZAv1Bp9S0"
   },
   {
-    title: "Senorita",
-    artist: "Farhan, Hrithik, Abhay • ZNMD (2011)",
-    yt: "https://www.youtube.com/watch?v=M48l-3bIqE4"
+    title: "Tumhein Apna Banane Ki Kasam",
+    artist: "Kumar Sanu & Anuradha Paudwal • Sadak",
+    yt: "https://youtu.be/LMpSZWT1O78"
   },
   {
-    title: "Chaiyya Chaiyya",
-    artist: "Sukhwinder Singh & Sapna Awasthi • Dil Se (1998)",
-    yt: "https://www.youtube.com/watch?v=iQbGVd81f1g"
+    title: "Raah Mein Unse Mulaqat",
+    artist: "Alka Yagnik & Kumar Sanu • Vijaypath",
+    yt: "https://youtu.be/-Tl_FVOx-cs"
+  },
+  {
+    title: "Tu Jo Hans Hans Ke",
+    artist: "Kavita Krishnamurthy & Udit Narayan • Raja Bhaiya",
+    yt: "https://youtu.be/z89sVzrF0nQ"
+  },
+  {
+    title: "Is Tarah Aashiqui Ka",
+    artist: "Kumar Sanu • Imtihaan",
+    yt: "https://youtu.be/cVT3BKkPCc4"
+  },
+  {
+    title: "Tumse Milne Ko Dil",
+    artist: "Alka Yagnik & Kumar Sanu • Phool Aur Kaante",
+    yt: "https://youtu.be/_dLXszk6jic"
+  },
+  {
+    title: "Barsaat Ke Mausam Mein",
+    artist: "Kumar Sanu & Roop Kumar Rathod • Naajayaz",
+    yt: "https://youtu.be/ER7RoDTT2_4"
+  },
+  {
+    title: "Tumse Milne Ki Tamanna Hai",
+    artist: "S.P. Balasubrahmanyam • Saajan",
+    yt: "https://youtu.be/GCcyZi0dHXY"
   }
 
 ];
