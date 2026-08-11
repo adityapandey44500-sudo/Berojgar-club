@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Berojgar Club — बेरोजगार क्लब</title>
+  <meta name="description" content="बेरोजगार क्लब — नियम: नौकरी की बात मना है। रोजगार के अवसर? शायद कल।" />
+  <meta name="theme-color" content="#1a0f0a" />
+  <meta property="og:title" content="Berojgar Club" />
+  <meta property="og:description" content="नियम: नौकरी की बात मना है। रोजगार के अवसर? शायद कल।" />
+  <meta property="og:image" content="/hero.jpg" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪔%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <div class="vignette"></div>
+
+  <header class="topbar">
+    <div class="clock" id="clock">--:-- --</div>
+    <div class="online">
+      <span class="dot"></span>
+      <span id="online-count">0</span> members loitering
+    </div>
+    <nav class="links">
+      <a href="#rules">नियम</a>
+      <a href="#vibes">Vibes</a>
+      <a href="#tracks">Playlist</a>
+      <a href="#join">Join</a>
+    </nav>
+  </header>
+
+  <main class="stage">
+
+    <!-- HERO -->
+    <section class="hero" id="home">
+      <div class="hero-art">
+        <img src="hero.jpg" alt="बेरोजगार क्लब — पहाड़ों के बीच एक ढाबा जहाँ लोग कैरम खेल रहे हैं, अख़बार पढ़ रहे हैं" />
+        <div class="hero-art-fade"></div>
+      </div>
+
+      <div class="hero-title">
+        <h1>
+          <span class="d">बेरोजगार</span>
+          <span class="d">क्लब</span>
+        </h1>
+        <p class="tagline">नियम: नौकरी की बात मना है। &nbsp;•&nbsp; रोजगार के अवसर? शायद कल।</p>
+      </div>
+
+      <div class="hero-sign sign-left">
+        <p>**नियम: नौकरी<br/>की बात मना है**</p>
+      </div>
+      <div class="hero-sign sign-right">
+        <p>**रोजगार के अवसर?<br/>शायद कल।**</p>
+      </div>
+    </section>
+
+    <!-- NOW PLAYING -->
+    <section class="now-playing" id="tracks">
+      <div class="np-left">
+        <div class="np-art" id="np-art">
+          <div class="np-art-inner"></div>
+        </div>
+      </div>
+      <div class="np-right">
+        <div class="np-eyebrow">
+          <span class="pulse"></span> अब बज रहा है — from the dhaba radio
+        </div>
+        <div class="np-title" id="np-title">Dum Maro Dum (Live)</div>
+        <div class="np-artist" id="np-artist">R. D. Burman • Annette Pinto</div>
+
+        <div class="np-controls">
+          <button class="ctrl" id="btn-prev" aria-label="Previous">⏮</button>
+          <button class="ctrl play" id="btn-play" aria-label="Play">▶</button>
+          <button class="ctrl" id="btn-next" aria-label="Next">⏭</button>
+
+          <div class="np-progress" id="progress">
+            <div class="np-progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="np-time"><span id="t-cur">0:00</span> / <span id="t-dur">0:00</span></div>
+        </div>
+
+        <div class="np-platforms">
+          <a href="#" class="chip" title="Add your own Spotify playlist">Spotify</a>
+          <a href="#" class="chip" title="Add your own YT Music playlist">YT Music</a>
+          <a href="#" class="chip">Apple Music</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- RULES -->
+    <section class="panel rules" id="rules">
+      <h2>— क्लब के नियम —</h2>
+      <ol class="rule-list">
+        <li><b>नियम #1:</b> नौकरी की बात मना है। कम से कम आज के लिए।</li>
+        <li><b>नियम #2:</b> CV, resume, LinkedIn links — gate pe hi jama kar dein.</li>
+        <li><b>नियम #3:</b> Chai ek doosre ke liye banegi. Free, par bahaane mandatory hain.</li>
+        <li><b>नियम #4:</b> Carrom ke striker par koi reservation nahi.</li>
+        <li><b>नियम #5:</b> "Kal se pakka padhunga" — har 4 ghante mein repeat allowed.</li>
+        <li><b>नियम #6:</b> Umeed mat chhodo, bas aaj ke liiye chill karo.</li>
+      </ol>
+    </section>
+
+    <!-- VIBES / CARROM -->
+    <section class="panel vibes" id="vibes">
+      <h2>— आज का माहौल —</h2>
+      <div class="vibe-grid">
+        <div class="vibe-card">
+          <div class="vibe-icon">🪔</div>
+          <div class="vibe-kicker">Temperature</div>
+          <div class="vibe-val">11°C</div>
+          <div class="vibe-sub">Pahadon mein thand aur chullu bhar chai</div>
+        </div>
+        <div class="vibe-card">
+          <div class="vibe-icon">☕</div>
+          <div class="vibe-kicker">Chai rounds done</div>
+          <div class="vibe-val" id="chai-count">14</div>
+          <div class="vibe-sub">Kettle #3 abhi gas pe hai</div>
+        </div>
+        <div class="vibe-card">
+          <div class="vibe-icon">🎯</div>
+          <div class="vibe-kicker">Carrom games today</div>
+          <div class="vibe-val" id="carrom-count">7</div>
+          <div class="vibe-sub">Queen abhi tak kisi ki nahi hui</div>
+        </div>
+        <div class="vibe-card">
+          <div class="vibe-icon">📰</div>
+          <div class="vibe-kicker">Rozgaar news</div>
+          <div class="vibe-val">Shayad Kal™</div>
+          <div class="vibe-sub">Akhbaaron ke page abhi palat rahe hain</div>
+        </div>
+      </div>
+
+      <div class="carrom-wrap">
+        <p class="whisper">(कैरम बोर्ड पर हल्की सी टैप करें — शॉट लग जाता है)</p>
+        <div class="carrom" id="carrom" aria-label="Mini carrom board">
+          <div class="carrom-border">
+            <div class="pocket tl"></div>
+            <div class="pocket tr"></div>
+            <div class="pocket bl"></div>
+            <div class="pocket br"></div>
+            <div class="carrom-lines"></div>
+            <div class="piece striker" id="striker"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEMBER BOARD -->
+    <section class="panel members" id="members">
+      <h2>— आज कौन-कौन हाज़िर है —</h2>
+      <ul class="member-list" id="member-list"></ul>
+    </section>
+
+    <!-- JOIN / CTA -->
+    <section class="panel join" id="join">
+      <h2>— शामिल हों —</h2>
+      <p>
+        Admission free. Qualification: कोई खास नहीं।
+        Bus apna ek आड़ा-तिरछा सपना, एक अदद कप चाय का शौक,
+        और ये वादा कि अगर कल नौकरी मिल भी जाए तो ये दोस्ती नहीं भूलेंगे।
+      </p>
+      <form class="join-form" id="join-form">
+        <input type="text" id="name-input" placeholder="अपना नाम लिखें (उपनाम चलेगा)" maxlength="24" required />
+        <button type="submit">दाखिला लें</button>
+      </form>
+      <p class="fine-print">
+        * आप यहाँ से कब जाएंगे ये आपका फैसला है। कोई clock-in, कोई clock-out।
+        रोजगार के अवसर? शायद कल।
+      </p>
+    </section>
+
+    <footer class="footer">
+      <div>© <span id="year"></span> Berojgar Club · पहाड़ों के बीच, कहीं</div>
+      <div class="foot-meta">Made with 🫖, carrom powder aur ढेर सारा आराम</div>
+    </footer>
+  </main>
+
+  <audio id="radio" preload="none" crossorigin="anonymous"></audio>
+
+  <!-- Apni playlist edit karne ke liye playlist.js kholo -->
+  <script src="playlist.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
