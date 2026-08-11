@@ -1,34 +1,11 @@
-/* =========================================================
-   Berojgar Club — अपनी playlist
-   ---------------------------------------------------------
-   1.  Sabhi MP3 files is folder ke andar daalo:   songs/
-       (example: songs/yeh-shaam-mastani.mp3)
-   2.  Sabhi cover/album art images is folder mein daalo: covers/
-       (1:1 square images .jpg ya .png, example: covers/yeh-shaam.jpg)
-   3.  Neeche TRACKS array mein har gaane ke liye ek object add karo:
-
-       {
-         title  : "Ye Shaam Mastani",
-         artist : "Kishore Kumar",
-         file   : "yeh-shaam-mastani.mp3",     // songs/ ke andar ka filename
-         cover  : "yeh-shaam.jpg",             // [optional] covers/ ka filename
-       }
-
-   Koi cover nahi hai toh `cover` line hata do — auto-generate ho jayega.
-   ========================================================= */
-
 window.BC_PLAYLIST = [
 
-  /* ------ DEMO placeholder (remove kar dena jab apne gane daalo) ------ */
   {
-    title: "Apna pehla gaana daalo — (placeholder)",
-    artist: "Berojgar Club Radio",
-    file: null,   // jab tak file null hai, player visual animation mode mein chalta hai
-    cover: null,
+    title: "Mujhse Mohabbat Ka Izhaar Karta",
+    artist: "Kumar Sanu & Alka Yagnik • Hum Hain Rahi Pyar Ke (1993)",
+    file: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/54/20/6c/54206c16-fcb5-52d5-aa90-aa5971aca547/mzaf_7625739938615947657.plus.aac.p.m4a",
+    cover: "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d8/1f/fe/d81ffee2-15bd-5d17-7af0-a4794fa94547/cover.jpg/600x600bb.jpg",
+    note: "30s preview (Apple iTunes sample)"
   },
 
-  // Example:
-  // { title: "Ye Shaam Mastani",        artist: "Kishore Kumar",    file: "ye-shaam.mp3",      cover: "ye-shaam.jpg" },
-  // { title: "Dum Maro Dum",            artist: "R. D. Burman",     file: "dum-maro-dum.mp3",  cover: "dum-maro-dum.jpg" },
-  // { title: "Phir Se Ud Chala",        artist: "Mohit Chauhan",    file: "phir-se-ud-chala.mp3" },
 ];
