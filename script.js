@@ -1,9 +1,8 @@
 /* =========================================================
    Berojgar Club — client-side interactivity
-   - Live Indian clock
+   - Live Indian clock (IST)
    - Fake "members loitering" counter
-   - REAL music player (aapke apne MP3, playlist.js se)
-   - Visual animation mode (jab koi real file nahi hai)
+   - YouTube-powered MUSIC PLAYER (poore gaane, no MP3 upload)
    - Mini carrom striker on click/tap
    - Join form (localStorage)
    - Chai / carrom auto counters
@@ -39,23 +38,25 @@
   updateOnline();
   setInterval(updateOnline, 7000);
 
-  /* ---------- Playlist load ---------- */
-  const USER_TRACKS = Array.isArray(window.BC_PLAYLIST)
+  /* ---------- Helpers ---------- */
+  const ytIdFromUrl = (url) => {
+    if (!url) return null;
+    if (/^[A-Za-z0-9_-]{11}$/.test(url)) return url;
+    const m = url.match(/(?:v=|youtu\.be\/|embed\/|v\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+  };
+
+  const rawTracks = Array.isArray(window.BC_PLAYLIST)
     ? window.BC_PLAYLIST.filter(t => t && t.title)
     : [];
 
-  const HAS_REAL_TRACKS = USER_TRACKS.some(t => t.file);
-
-  const VISUAL_TRACKS = [
-    { title: "Apna pehla gaana daalo — (placeholder)", artist: "Berojgar Club Radio", file: null, cover: null, mood: "#c97b3c" },
-    { title: "Dum Maro Dum (yaad aa rahi)",            artist: "R. D. Burman (placeholder)",     file: null, mood: "#c97b3c" },
-    { title: "Ye Shaam Mastani (yaad aa rahi)",        artist: "Kishore Kumar (placeholder)",    file: null, mood: "#e8b66a" },
-    { title: "Phir Se Ud Chala (yaad aa rahi)",        artist: "Mohit Chauhan (placeholder)",    file: null, mood: "#4a6b8a" },
-    { title: "Tum Hi Ho Bandhu (yaad aa rahi)",        artist: "Pritam (placeholder)",           file: null, mood: "#d96b4a" },
-    { title: "Chaiyya Chaiyya (yaad aa rahi)",         artist: "Sukhwinder Singh (placeholder)", file: null, mood: "#5a3a24" },
-  ];
-
-  const TRACKS = HAS_REAL_TRACKS ? USER_TRACKS : VISUAL_TRACKS;
+  const TRACKS = rawTracks.length
+    ? rawTracks.map(t => ({
+        title: t.title,
+        artist: t.artist || "",
+        ytId: ytIdFromUrl(t.yt || t.youtube || t.url || t.id)
+      })).filter(t => t.ytId)
+    : [];
 
   const MOODS = ["#c97b3c","#e8b66a","#4a6b8a","#7a5a8a","#2f4a3a","#d96b4a","#e8a86a","#5a3a24"];
 
@@ -70,14 +71,21 @@
   const fill      = $("#progress-fill");
   const tCur      = $("#t-cur");
   const tDur      = $("#t-dur");
-  const radio     = $("#radio");
+
+  /* ---------- Hidden YouTube player ---------- */
+  const ytHost = document.createElement("div");
+  ytHost.id = "yt-host";
+  ytHost.style.cssText = "position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;";
+  document.body.appendChild(ytHost);
 
   /* ---------- Player state ---------- */
   let tIdx = 0;
   let playing = false;
-  let visualProgress = 0;
-  let visualDuration = 240;
-  let lastTick = performance.now();
+  let player = null;
+  let playerReady = false;
+  let duration = 0;
+  let progTimer = null;
+  let scrobble = null;
 
   const fmt = (s) => {
     s = Math.max(0, Math.floor(isFinite(s) ? s : 0));
@@ -88,27 +96,21 @@
 
   const setArt = (track) => {
     npArt.innerHTML = "";
-    const cover = track && track.cover;
-    if (cover) {
-      const isExternal = /^https?:\/\//i.test(cover);
-      const img = document.createElement("img");
-      img.src = isExternal ? cover : `covers/${cover}`;
-      img.alt = track.title || "album art";
-      img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
-      img.onerror = () => setFallbackArt(track);
-      const center = document.createElement("div");
-      center.className = "np-center-dot";
-      npArt.appendChild(img);
-      npArt.appendChild(center);
-    } else {
-      setFallbackArt(track);
-    }
+    const img = document.createElement("img");
+    img.src = `https://i.ytimg.com/vi/${track.ytId}/hqdefault.jpg`;
+    img.alt = track.title;
+    img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+    img.onerror = () => setFallbackArt(track);
+    const center = document.createElement("div");
+    center.className = "np-center-dot";
+    npArt.appendChild(img);
+    npArt.appendChild(center);
   };
 
   const setFallbackArt = (track) => {
     npArt.innerHTML = "";
     const inner = document.createElement("div");
-    const color = (track && track.mood) || MOODS[tIdx % MOODS.length];
+    const color = MOODS[tIdx % MOODS.length];
     inner.className = "np-art-inner";
     inner.style.background =
       `radial-gradient(circle at 30% 30%, rgba(255,179,71,0.55), transparent 60%),
@@ -119,84 +121,58 @@
     npArt.appendChild(center);
   };
 
-  const loadTrack = (i, autoplayHint = false) => {
+  const loadTrack = (i, autoplay = false) => {
     tIdx = (i + TRACKS.length) % TRACKS.length;
     const t = TRACKS[tIdx];
+    if (!t) return;
     npTitle.textContent = t.title;
     npArtist.textContent = t.artist || "";
     setArt(t);
     fill.style.width = "0%";
+    tCur.textContent = "0:00";
+    tDur.textContent = "—:--";
 
-    const src = t.file || null;
-    const isExternal = typeof src === "string" && /^https?:\/\//i.test(src);
-
-    if (src) {
-      radio.src = isExternal ? src : `songs/${src}`;
-      try { radio.load(); } catch(e) { console.warn(e); }
-      radio.onloadedmetadata = () => {
-        tDur.textContent = fmt(radio.duration);
-      };
-      radio.onended = () => { next(true); };
-      radio.ontimeupdate = () => {
-        if (!radio.duration) return;
-        const p = radio.currentTime / radio.duration;
-        fill.style.width = `${p * 100}%`;
-        tCur.textContent = fmt(radio.currentTime);
-        tDur.textContent = fmt(radio.duration);
-      };
-      radio.onerror = () => {
-        console.warn("[Berojgar Club] Could not load:", radio.src);
-        tCur.textContent = "0:00";
-        tDur.textContent = "—:--";
-      };
-      tDur.textContent = "…";
-    } else {
-      radio.removeAttribute("src");
-      try { radio.load(); } catch(e) {}
-      visualDuration = 220 + Math.floor(Math.random() * 120);
-      visualProgress = 0;
-      tDur.textContent = fmt(visualDuration);
+    if (!playerReady || !player) {
+      scrobble = () => loadTrack(i, autoplay);
+      return;
     }
 
-    if (autoplayHint) play();
-    updateSpin();
+    player.loadVideoById(t.ytId);
+    if (!autoplay) {
+      setTimeout(() => tryPause(), 300);
+    } else {
+      setTimeout(() => tryPlay(), 300);
+    }
   };
+
+  const tryPlay = () => { try { player.playVideo(); } catch(e) {} };
+  const tryPause = () => { try { player.pauseVideo(); } catch(e) {} };
 
   const play = () => {
-    const t = TRACKS[tIdx];
-    if (t.file) {
-      const p = radio.play();
-      if (p && p.catch) {
-        p.catch(err => {
-          console.warn("[Berojgar Club] Autoplay blocked:", err && err.message);
-          playing = false;
-          btnPlay.textContent = "▶";
-          updateSpin();
-        });
-      }
-    }
+    if (!TRACKS.length) return;
+    if (playerReady && player) tryPlay();
     playing = true;
     btnPlay.textContent = "❚❚";
-    lastTick = performance.now();
     updateSpin();
+    startProgressLoop();
   };
-
   const pause = () => {
-    radio.pause();
+    if (playerReady && player) tryPause();
     playing = false;
     btnPlay.textContent = "▶";
     updateSpin();
+    stopProgressLoop();
   };
-
   const toggle = () => (playing ? pause() : play());
-
-  const next = (autoplay = false) => {
-    loadTrack(tIdx + 1, autoplay);
+  const next = (auto = false) => {
+    const newIdx = (tIdx + 1) % TRACKS.length;
+    loadTrack(newIdx, playing || auto);
   };
   const prev = () => {
-    if (TRACKS[tIdx].file && radio.currentTime > 3) {
-      radio.currentTime = 0;
+    if (playerReady && player && player.getCurrentTime && player.getCurrentTime() > 3) {
+      player.seekTo(0, true);
       fill.style.width = "0%";
+      tCur.textContent = "0:00";
       return;
     }
     loadTrack(tIdx - 1, playing);
@@ -207,61 +183,103 @@
     else npArt.classList.remove("spinning");
   };
 
-  btnPlay.addEventListener("click", toggle);
-  btnPrev.addEventListener("click", prev);
-  btnNext.addEventListener("click", () => next(playing));
+  const startProgressLoop = () => {
+    stopProgressLoop();
+    progTimer = setInterval(() => {
+      if (!playerReady || !player || !player.getCurrentTime) return;
+      try {
+        const cur = player.getCurrentTime() || 0;
+        const dur = player.getDuration() || 0;
+        if (dur > 0) {
+          duration = dur;
+          fill.style.width = `${(cur / dur) * 100}%`;
+          tCur.textContent = fmt(cur);
+          tDur.textContent = fmt(dur);
+        }
+      } catch(e) {}
+    }, 500);
+  };
+  const stopProgressLoop = () => {
+    if (progTimer) { clearInterval(progTimer); progTimer = null; }
+  };
 
   progress.addEventListener("click", (e) => {
     const rect = progress.getBoundingClientRect();
     const p = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const t = TRACKS[tIdx];
-    if (t.file && radio.duration) {
-      radio.currentTime = p * radio.duration;
-    } else {
-      visualProgress = p;
+    if (playerReady && player && player.seekTo && duration > 0) {
+      player.seekTo(p * duration, true);
+      fill.style.width = `${p * 100}%`;
+      tCur.textContent = fmt(p * duration);
     }
   });
+
+  btnPlay.addEventListener("click", toggle);
+  btnPrev.addEventListener("click", prev);
+  btnNext.addEventListener("click", () => next(false));
 
   document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT") return;
     if (e.code === "Space") { e.preventDefault(); toggle(); }
-    else if (e.code === "ArrowRight") next(playing);
+    else if (e.code === "ArrowRight") next(false);
     else if (e.code === "ArrowLeft") prev();
   });
 
-  /* ---------- Animation loop ---------- */
-  const tick = (now) => {
-    if (playing) {
-      const dt = (now - lastTick) / 1000;
-      lastTick = now;
-
-      const t = TRACKS[tIdx];
-      if (!t.file) {
-        visualProgress += dt / visualDuration;
-        if (visualProgress >= 1) {
-          visualProgress = 0;
-          tIdx = (tIdx + 1) % TRACKS.length;
-          loadTrack(tIdx, true);
+  /* ---------- YouTube IFrame API ---------- */
+  window.onYouTubeIframeAPIReady = () => {
+    player = new YT.Player("yt-host", {
+      height: "1",
+      width: "1",
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        playsinline: 1,
+        rel: 0
+      },
+      events: {
+        onReady: () => {
+          playerReady = true;
+          loadTrack(0, false);
+          if (scrobble) { const fn = scrobble; scrobble = null; fn(); }
+        },
+        onStateChange: (ev) => {
+          if (ev.data === YT.PlayerState.PLAYING) {
+            playing = true;
+            btnPlay.textContent = "❚❚";
+            updateSpin();
+            startProgressLoop();
+            duration = player.getDuration() || duration;
+            tDur.textContent = fmt(duration);
+          } else if (ev.data === YT.PlayerState.PAUSED) {
+            playing = false;
+            btnPlay.textContent = "▶";
+            updateSpin();
+            stopProgressLoop();
+          } else if (ev.data === YT.PlayerState.ENDED) {
+            stopProgressLoop();
+            next(true);
+          }
+        },
+        onError: () => {
+          setTimeout(() => next(true), 800);
         }
-        fill.style.width = `${visualProgress * 100}%`;
-        tCur.textContent = fmt(visualProgress * visualDuration);
       }
-    } else {
-      lastTick = now;
-    }
-    requestAnimationFrame(tick);
+    });
   };
 
-  if (!HAS_REAL_TRACKS) {
-    const hint = document.createElement("p");
-    hint.className = "np-hint";
-    hint.innerHTML = '👉 <code>playlist.js</code> edit karke apne MP3 daalo — <code>songs/</code> folder mein';
-    const npRight = btnPlay.parentElement;
-    npRight.appendChild(hint);
-  }
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  const firstScript = document.getElementsByTagName("script")[0];
+  firstScript.parentNode.insertBefore(tag, firstScript);
 
-  loadTrack(0, false);
-  requestAnimationFrame(tick);
+  if (!TRACKS.length) {
+    npTitle.textContent = "Playlist में कोई गाना नहीं है";
+    npArtist.textContent = "playlist.js में YouTube links add karo →";
+    btnPlay.disabled = true;
+    btnPlay.style.opacity = "0.5";
+  }
 
   /* ---------- Chai + Carrom counters ---------- */
   const chaiEl = $("#chai-count");
@@ -324,7 +342,7 @@
     { name: "Anita didi (M.A.)",                  status: "newspaper" },
     { name: "Raju guide",                         status: "asleep" },
     { name: "Sharmaji ka beta",                   status: "pretending" },
-    { name: "Bhaiya from closed coaching centre", status: "philosophy" },
+    { name: "Bhaiya from closed coaching centre", status: "philosophy" }
   ];
   const loadMembers = () => {
     try {
@@ -346,7 +364,7 @@
     asleep:     { label: "झपकी ले रहे",    cls: "idle" },
     pretending: { label: "पढ़ने का नाटक",   cls: "busy" },
     philosophy: { label: "जीवन-चर्चा",     cls: "busy" },
-    new:        { label: "नए आये",         cls: "idle" },
+    new:        { label: "नए आये",         cls: "idle" }
   };
   const avatarColor = (name) => {
     let h = 0;
