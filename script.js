@@ -1,9 +1,11 @@
 /* =========================================================
-   Berojgar Club — client-side interactivity (v6 bullet-proof)
-   Fixes: fast-skip cascade. We now track the "expected" video id
-   and ignore any onError/onStateChange events that belong to a
-   previous (already-unloaded) video. Also added load-cooldown so
-   a broken track can't trigger more than one skip per load.
+   Berojgar Club — client-side interactivity (v7 — live members)
+   - Live Indian clock (IST)
+   - Fake "members loitering" counter
+   - YouTube-powered MUSIC PLAYER (bug-fixed, no fast-skip)
+   - LIVE shared member list (sabko dikhte hain join karne wale log)
+   - Mini carrom striker on click/tap
+   - Chai / carrom auto counters
    ========================================================= */
 
 (() => {
@@ -82,17 +84,11 @@
   let progTimer = null;
   let scrobble = null;
 
-  // The id of the track we BELIEVE is currently loaded / intended.
-  // Any YT events for a DIFFERENT id are from a previous load and get ignored.
   let expectedId = null;
-  // Per-session list of ids we've already given up on.
   const badIds = new Set();
-  // Guards against cascade-skip: minimum time between programmatic nexts.
   let lastAutoAdvanceAt = 0;
   const AUTO_ADVANCE_COOLDOWN_MS = 2500;
-  // Did the user explicitly request play on this track?
   let userWantsPlaying = false;
-  // Loading flag: ignore events until we see a matching PLAYING/PAUSED for expectedId.
   let loadingToken = 0;
 
   const fmt = (s) => {
@@ -168,15 +164,13 @@
     const now = Date.now();
     if (now - lastAutoAdvanceAt < AUTO_ADVANCE_COOLDOWN_MS) return;
     lastAutoAdvanceAt = now;
-    console.log("[BC] advancing to next, reason:", reason);
     loadTrack(tIdx + 1, true);
   };
 
   const markBadAndSkip = (badId, reason) => {
     if (!badId) return;
-    if (badId !== expectedId) return; // stale
+    if (badId !== expectedId) return;
     badIds.add(badId);
-    console.warn("[BC] skipping bad track:", badId, reason);
     try { player.stopVideo && player.stopVideo(); } catch(e) {}
     showPausedUI();
     tDur.textContent = "—:--";
@@ -186,20 +180,15 @@
   const loadTrack = (i, autoplay = false) => {
     if (!TRACKS.length) return;
     tIdx = ((i % TRACKS.length) + TRACKS.length) % TRACKS.length;
-
     if (badIds.size >= TRACKS.length) badIds.clear();
-
     let guard = 0;
     while (badIds.has(TRACKS[tIdx].ytId) && guard < TRACKS.length) {
-      tIdx = (tIdx + 1) % TRACKS.length;
-      guard++;
+      tIdx = (tIdx + 1) % TRACKS.length; guard++;
     }
-
     const t = TRACKS[tIdx];
     expectedId = t.ytId;
     loadingToken++;
     const myToken = loadingToken;
-
     npTitle.textContent = t.title;
     npArtist.textContent = t.artist || "";
     setArt(t);
@@ -207,25 +196,15 @@
     tCur.textContent = "0:00";
     tDur.textContent = "…";
     duration = 0;
-
     if (!playerReady || !player) {
       scrobble = () => loadTrack(tIdx, autoplay);
       return;
     }
-
-    try {
-      player.cueVideoById(t.ytId, 0, "default");
-    } catch(e) {
-      console.warn("[BC] cueVideoById failed", e);
-    }
-
+    try { player.cueVideoById(t.ytId, 0, "default"); }
+    catch(e) {}
     setTimeout(() => {
       if (myToken !== loadingToken || expectedId !== t.ytId) return;
-      if (autoplay) {
-        tryPlay();
-      } else {
-        tryPause();
-      }
+      if (autoplay) tryPlay(); else tryPause();
     }, 500);
   };
 
@@ -241,25 +220,18 @@
     showPausedUI();
   };
   const toggle = () => (playing ? pause() : play());
-  const next = () => {
-    lastAutoAdvanceAt = 0;
-    loadTrack(tIdx + 1, userWantsPlaying || playing);
-  };
+  const next = () => { lastAutoAdvanceAt = 0; loadTrack(tIdx + 1, userWantsPlaying || playing); };
   const prev = () => {
     if (playerReady && player) {
       try {
         if (player.getCurrentTime && player.getCurrentTime() > 3) {
-          player.seekTo(0, true);
-          fill.style.width = "0%";
-          tCur.textContent = "0:00";
-          return;
+          player.seekTo(0, true); fill.style.width = "0%"; tCur.textContent = "0:00"; return;
         }
       } catch(e) {}
     }
     loadTrack(tIdx - 1, playing);
   };
 
-  /* Progress polling */
   const startProgressLoop = () => {
     stopProgressLoop();
     progTimer = setInterval(() => {
@@ -270,7 +242,6 @@
         const vidUrl = player.getVideoUrl ? player.getVideoUrl() : "";
         const curId = ytIdFromUrl(vidUrl);
         if (curId && curId !== expectedId) return;
-
         if (dur > 0) {
           duration = dur;
           fill.style.width = ((cur / dur) * 100) + "%";
@@ -280,9 +251,7 @@
       } catch(e) {}
     }, 500);
   };
-  const stopProgressLoop = () => {
-    if (progTimer) { clearInterval(progTimer); progTimer = null; }
-  };
+  const stopProgressLoop = () => { if (progTimer) { clearInterval(progTimer); progTimer = null; } };
 
   progress.addEventListener("click", (e) => {
     const rect = progress.getBoundingClientRect();
@@ -297,7 +266,6 @@
   btnPlay.addEventListener("click", toggle);
   btnPrev.addEventListener("click", prev);
   btnNext.addEventListener("click", next);
-
   document.addEventListener("keydown", (e) => {
     if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
     if (e.code === "Space") { e.preventDefault(); toggle(); }
@@ -309,10 +277,7 @@
   window.onYouTubeIframeAPIReady = () => {
     player = new YT.Player("yt-host", {
       height: "1", width: "1",
-      playerVars: {
-        autoplay: 0, controls: 0, disablekb: 1, fs: 0,
-        iv_load_policy: 3, modestbranding: 1, playsinline: 1, rel: 0
-      },
+      playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1, playsinline: 1, rel: 0 },
       events: {
         onReady: () => {
           playerReady = true;
@@ -324,33 +289,20 @@
           try { eventId = ytIdFromUrl(player.getVideoUrl()); } catch(e) {}
           if (eventId && expectedId && eventId !== expectedId) return;
           if (loadingToken && ev.data === YT.PlayerState.UNSTARTED && !eventId) return;
-
           if (ev.data === YT.PlayerState.PLAYING) {
             if (eventId) expectedId = eventId;
             showPlayingUI();
-            try {
-              const d = player.getDuration();
-              if (d > 0) { duration = d; tDur.textContent = fmt(d); }
-            } catch(e) {}
+            try { const d = player.getDuration(); if (d > 0) { duration = d; tDur.textContent = fmt(d); } } catch(e) {}
             return;
           }
-          if (ev.data === YT.PlayerState.PAUSED) {
-            if (!userWantsPlaying) showPausedUI();
-            return;
-          }
-          if (ev.data === YT.PlayerState.ENDED) {
-            showPausedUI();
-            advanceToNext("ended");
-            return;
-          }
+          if (ev.data === YT.PlayerState.PAUSED) { if (!userWantsPlaying) showPausedUI(); return; }
+          if (ev.data === YT.PlayerState.ENDED) { showPausedUI(); advanceToNext("ended"); return; }
         },
         onError: (ev) => {
-          console.warn("[BC] YouTube error:", ev.data, "expectedId:", expectedId);
           let eventId = null;
           try { eventId = ytIdFromUrl(player.getVideoUrl()); } catch(e) {}
           if (eventId && expectedId && eventId !== expectedId) return;
-          const badId = eventId || expectedId;
-          markBadAndSkip(badId, "yt-error-" + ev.data);
+          markBadAndSkip(eventId || expectedId, "yt-error-" + ev.data);
         }
       }
     });
@@ -358,17 +310,15 @@
 
   const tag = document.createElement("script");
   tag.src = "https://www.youtube.com/iframe_api";
-  const firstScript = document.getElementsByTagName("script")[0];
-  firstScript.parentNode.insertBefore(tag, firstScript);
+  document.getElementsByTagName("script")[0].parentNode.insertBefore(tag, document.getElementsByTagName("script")[0]);
 
   if (!TRACKS.length) {
     npTitle.textContent = "Playlist में कोई गाना नहीं है";
     npArtist.textContent = "playlist.js में YouTube links add karo →";
-    btnPlay.disabled = true;
-    btnPlay.style.opacity = "0.5";
+    btnPlay.disabled = true; btnPlay.style.opacity = "0.5";
   }
 
-  /* ---------- Chai + Carrom counters ---------- */
+  /* ---------- Chai + Carrom ---------- */
   const chaiEl = $("#chai-count");
   const carromEl = $("#carrom-count");
   setInterval(() => { if (Math.random() < 0.25) chaiEl.textContent = +chaiEl.textContent + 1; }, 12000);
@@ -378,28 +328,26 @@
   const carrom = $("#carrom");
   const border = $(".carrom-border");
   const striker = $("#striker");
-
   const pieceColors = ["black","white","black","white","queen","white","black","white","black"];
   const placePieces = () => {
     $$(".piece.p", border).forEach(p => p.remove());
     const rect = border.getBoundingClientRect();
-    const cx = rect.width / 2, cy = rect.height / 2, r = 22;
+    const cx = rect.width/2, cy = rect.height/2, r = 22;
     pieceColors.forEach((c, i) => {
       const ang = (i / pieceColors.length) * Math.PI * 2;
       const p = document.createElement("div");
       p.className = "piece p " + c;
-      p.style.left = (cx + Math.cos(ang) * r) + "px";
-      p.style.top  = (cy + Math.sin(ang) * r) + "px";
+      p.style.left = (cx + Math.cos(ang)*r) + "px";
+      p.style.top  = (cy + Math.sin(ang)*r) + "px";
       border.appendChild(p);
     });
     const center = document.createElement("div");
     center.className = "piece p black got";
-    center.style.left = cx + "px"; center.style.top  = cy + "px";
+    center.style.left = cx + "px"; center.style.top = cy + "px";
     border.appendChild(center);
   };
   requestAnimationFrame(placePieces);
   window.addEventListener("resize", placePieces);
-
   let strikerX = 50;
   striker.style.left = strikerX + "%";
   carrom.addEventListener("click", (e) => {
@@ -419,29 +367,24 @@
     if (Math.random() < 0.5) carromEl.textContent = +carromEl.textContent + 1;
   });
 
-  /* ---------- Members / Join ---------- */
+  /* =========================================================
+     LIVE SHARED MEMBER LIST
+     (Free cloud JSON store: jsonblob.com — no account needed)
+     ========================================================= */
   const memberList = $("#member-list");
-  const storageKey = "berojgar_members_v1";
+  const LOCAL_KEY = "berojgar_members_v1";
+  const BLOB_URL = "https://jsonblob.com/api/jsonBlob/019ff184-abba-7341-942d-84db6bc3b6b6";
+  const POLL_MS = 15000;
+  const MAX_MEMBERS = 100;
+
   const defaults = [
-    { name: "Bunty (B.A. fail)",                  status: "carrom" },
-    { name: "Pappu bhai",                         status: "chai" },
-    { name: "Anita didi (M.A.)",                  status: "newspaper" },
-    { name: "Raju guide",                         status: "asleep" },
-    { name: "Sharmaji ka beta",                   status: "pretending" },
-    { name: "Bhaiya from closed coaching centre", status: "philosophy" }
+    { name: "Bunty (B.A. fail)",                  status: "carrom",     at: 0 },
+    { name: "Pappu bhai",                         status: "chai",       at: 0 },
+    { name: "Anita didi (M.A.)",                  status: "newspaper",  at: 0 },
+    { name: "Raju guide",                         status: "asleep",     at: 0 },
+    { name: "Sharmaji ka beta",                   status: "pretending", at: 0 },
+    { name: "Bhaiya from closed coaching centre", status: "philosophy", at: 0 }
   ];
-  const loadMembers = () => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const arr = JSON.parse(raw);
-        if (Array.isArray(arr) && arr.length) return arr;
-      }
-    } catch(e) {}
-    return defaults.slice();
-  };
-  const saveMembers = (m) => { try { localStorage.setItem(storageKey, JSON.stringify(m)); } catch(e) {} };
-  let members = loadMembers();
 
   const statuses = {
     carrom:     { label: "कैरम में व्यस्त", cls: "busy" },
@@ -452,14 +395,50 @@
     philosophy: { label: "जीवन-चर्चा",     cls: "busy" },
     new:        { label: "नए आये",         cls: "idle" }
   };
+
+  let members = defaults.slice();
+
+  async function fetchMembers() {
+    try {
+      const res = await fetch(BLOB_URL, { headers: { "Accept": "application/json", "Cache-Control": "no-cache" }});
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.members)) return null;
+      return data.members;
+    } catch(e) { console.warn("[BC] fetch members failed:", e); return null; }
+  }
+
+  async function pushMembers(list) {
+    let combined = list;
+    try {
+      const server = await fetchMembers();
+      if (server && Array.isArray(server)) {
+        const existing = new Set(server.map(m => m.name.trim().toLowerCase()));
+        const newOnes = list.filter(m => !existing.has(m.name.trim().toLowerCase()));
+        combined = [...newOnes, ...server];
+      }
+    } catch(e) {}
+    combined = combined.slice(0, MAX_MEMBERS);
+    try {
+      await fetch(BLOB_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ members: combined })
+      });
+    } catch(e) { console.warn("[BC] push failed:", e); }
+    return combined;
+  }
+
   const avatarColor = (name) => {
     let h = 0;
     for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360;
     return "hsl(" + h + ", 55%, 58%)";
   };
+
   const renderMembers = () => {
     memberList.innerHTML = "";
-    members.forEach(m => {
+    const sorted = members.slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+    sorted.forEach(m => {
       const li = document.createElement("li");
       const initial = (m.name || "?").trim().charAt(0).toUpperCase();
       const s = statuses[m.status] || statuses.new;
@@ -470,26 +449,48 @@
       memberList.appendChild(li);
     });
   };
-  renderMembers();
-  setInterval(() => {
-    const keys = Object.keys(statuses).filter(k => k !== "new");
-    members = members.map((m, i) => {
-      if (i < defaults.length && Math.random() < 0.6) return m;
-      return { ...m, status: keys[Math.floor(Math.random() * keys.length)] };
-    });
-    saveMembers(members);
-    renderMembers();
-  }, 20000);
 
-  $("#join-form").addEventListener("submit", (e) => {
+  const rotateStatuses = () => {
+    const keys = Object.keys(statuses).filter(k => k !== "new");
+    members = members.map((m) => {
+      const isDefault = defaults.some(d => d.name === m.name);
+      if (!isDefault) return m;
+      if (Math.random() < 0.45) return { ...m, status: keys[Math.floor(Math.random() * keys.length)] };
+      return m;
+    });
+  };
+
+  async function refreshFromServer() {
+    const fresh = await fetchMembers();
+    if (fresh && fresh.length) members = fresh.slice(0, MAX_MEMBERS);
+    rotateStatuses();
+    renderMembers();
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(members)); } catch(e) {}
+  }
+
+  (async () => {
+    try {
+      const cached = JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]");
+      if (Array.isArray(cached) && cached.length) members = cached;
+    } catch(e) {}
+    renderMembers();
+    await refreshFromServer();
+    setInterval(refreshFromServer, POLL_MS);
+  })();
+
+  $("#join-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const input = $("#name-input");
     const name = (input.value || "").trim();
     if (!name) return;
-    members = [{ name, status: "new" }, ...members].slice(0, 60);
-    saveMembers(members);
+    const entry = { name, status: "new", at: Date.now() };
+    members = [entry, ...members.filter(m => m.name.trim().toLowerCase() !== name.trim().toLowerCase())].slice(0, MAX_MEMBERS);
     renderMembers();
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(members)); } catch(e) {}
     input.value = "";
     try { memberList.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch(e) {}
+    await pushMembers(members);
+    await refreshFromServer();
   });
+
 })();
